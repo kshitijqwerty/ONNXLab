@@ -2,12 +2,16 @@
   
   import { useState } from 'react'
   import { parseOnnxModel } from '@/lib/onnx/parser'
+  import { buildGraph } from '@/lib/onnx/graph'
+  import ModelGraph from '@/components/graph/ModelGraph'
+  import { parseGraph } from '@/lib/onnx/graphParser'
   
   export default function OnnxUploader() {
     const [fileName, setFileName] = useState<string>('')
     const [error, setError] = useState<string>('')
     const [loading, setLoading] = useState(false)
     const [modelInfo, setModelInfo] = useState<any>(null)
+    const [graph, setGraph] = useState<any>(null)
   
     async function handleFile(file: File) {
       setError('')
@@ -34,7 +38,14 @@
         const parsed = await parseOnnxModel(arrayBuffer)
         console.log('Parsed Model:', parsed)
         setModelInfo(parsed)
-  
+
+        const realGraph = await parseGraph(arrayBuffer)
+        const generatedGraph = buildGraph(realGraph)
+
+        setGraph(generatedGraph)
+        // const graphData = await parseGraph(arrayBuffer)
+        // console.log(graphData)
+
       } catch (err) {
         console.error(err)
         setError('Failed to read ONNX file')
@@ -102,7 +113,7 @@
             </p>
           )}
           {modelInfo && (
-            <div className="mt-6 w-full rounded-xl border bg-white p-4 text-left">
+            <div className="mt-6 w-full rounded-xl border border-gray-300 bg-white p-4 text-left text-black shadow-sm">
               <h3 className="mb-4 text-lg font-bold">
                 Model Information
               </h3>
@@ -113,7 +124,7 @@
                 {modelInfo.inputs.map((input: any) => (
                   <div
                     key={input.name}
-                    className="mt-2 rounded-lg bg-gray-100 p-3"
+                    className="mt-2 rounded-lg bg-gray-100 p-3 text-black"
                   >
                     <p>
                       <strong>Name:</strong> {input.name}
@@ -137,7 +148,7 @@
                 {modelInfo.outputs.map((output: any) => (
                   <div
                     key={output.name}
-                    className="mt-2 rounded-lg bg-gray-100 p-3"
+                    className="mt-2 rounded-lg bg-gray-100 p-3 text-black"
                   >
                     <p>
                       <strong>Name:</strong> {output.name}
@@ -154,6 +165,14 @@
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+          {graph && (
+            <div className='mt-8 w-full'>
+              <ModelGraph
+                nodes={graph.nodes}
+                edges={graph.edges}
+              />
             </div>
           )}
           {error && (
