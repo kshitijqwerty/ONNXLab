@@ -10,7 +10,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
 } from "reactflow";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NodeInspector from "./NodeInspector";
 import OperatorNode from "./OperatorNode";
 import "reactflow/dist/style.css";
@@ -29,6 +29,13 @@ export default function ModelGraph({
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
   return (
     <div
       className="

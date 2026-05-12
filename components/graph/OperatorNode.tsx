@@ -3,86 +3,148 @@
 import { Handle, Position } from "reactflow";
 
 interface Props {
-  data: {
-    label: string;
-    inputs?: string[];
-    outputs?: string[];
-    attributes?: any[];
-  };
+  data: any;
 }
 
 function getNodeColor(opType: string) {
   switch (opType.toLowerCase()) {
     case "conv":
-      return "from-blue-500 to-blue-700";
+      return "bg-blue-500";
 
     case "relu":
-      return "from-green-500 to-green-700";
+      return "bg-green-500";
 
     case "matmul":
-      return "from-purple-500 to-purple-700";
+      return "bg-purple-500";
 
     case "attention":
-      return "from-orange-500 to-orange-700";
+      return "bg-orange-500";
 
     case "softmax":
-      return "from-pink-500 to-pink-700";
-
-    case "add":
-      return "from-yellow-500 to-yellow-700";
+      return "bg-pink-500";
 
     default:
-      return "from-gray-700 to-gray-900";
+      return "bg-gray-700";
   }
 }
 
 export default function OperatorNode({ data }: Props) {
   return (
     <div
-      className={`
-        min-w-[240px]
-        rounded-2xl
-        border
-        border-white/10
-        bg-gradient-to-br
-        text-white
-        shadow-2xl
-        transition-all
-        hover:scale-[1.02]
-        hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]
-        ${getNodeColor(data.label)}
-      `}
+      className="
+      min-w-[140px]
+      rounded-xl
+      border
+      border-white/10
+      bg-[#111827]
+      shadow-xl
+      transition
+      hover:scale-[1.02]
+    "
     >
-      <Handle type="target" position={Position.Top} className="!bg-cyan-400" />
+      {/* Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-2 !w-2 !bg-cyan-400"
+      />
 
-      <div className="p-5">
-        {/* Header */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-xl font-bold">{data.label}</div>
+      {/* Header */}
+      <div
+        className="
+        flex
+        items-center
+        gap-2
+        p-3
+      "
+      >
+        {/* Color Dot */}
+        <div
+          className={`
+            h-3
+            w-3
+            rounded-full
+            ${getNodeColor(data.opType)}
+          `}
+        />
 
-          <div className="rounded-full bg-white/20 px-2 py-1 text-xs">OP</div>
-        </div>
-
-        {/* Stats */}
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2">
-            <span>Inputs</span>
-
-            <span>{data.inputs?.length || 0}</span>
+        {/* Operator */}
+        <div>
+          <div
+            className="
+            text-sm
+            font-semibold
+            text-white
+          "
+          >
+            {data.opType}
           </div>
 
-          <div className="flex items-center justify-between rounded-lg bg-black/20 px-3 py-2">
-            <span>Outputs</span>
-
-            <span>{data.outputs?.length || 0}</span>
+          <div
+            className="
+            text-[10px]
+            text-gray-400
+          "
+          >
+            {/* {data.domain || "ai.onnx"} */}
           </div>
         </div>
       </div>
+      <div
+        className="
+  mt-2
+  space-y-1
+"
+      >
+        {data.outputs?.slice(0, 2).map((output: any, index: number) => (
+          <div
+            key={index}
+            className="
+          rounded
+          bg-black/30
+          px-2
+          py-1
+          font-mono
+          text-[10px]
+          text-cyan-300
+        "
+          >
+            {output.tensor?.shape
+              ? `[${output.tensor.shape.join(", ")}]`
+              : "shape unavailable"}
+          </div>
+        ))}
+      </div>
 
+      {/* Footer */}
+      <div
+        className="
+        border-t
+        border-white/5
+        px-3
+        py-2
+      "
+      >
+        <div
+          className="
+          flex
+          items-center
+          justify-between
+          text-[10px]
+          text-gray-400
+        "
+        >
+          <span>IN {data.inputs?.length || 0}</span>
+
+          <span>OUT {data.outputs?.length || 0}</span>
+        </div>
+      </div>
+
+      {/* Output Handle */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-pink-400"
+        className="!h-2 !w-2 !bg-pink-400"
       />
     </div>
   );

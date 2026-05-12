@@ -4,22 +4,83 @@ interface Props {
   node: any;
 }
 
+function normalizeValue(value: any): any {
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'low' in value
+  ) {
+
+    return value.low
+  }
+
+  return value
+}
+
+function formatAttributeValue(
+  attr: any
+) {
+
+  // Float arrays
+  if (attr.floats?.length) {
+
+    return `[${attr.floats
+      .map(normalizeValue)
+      .join(', ')}]`
+  }
+
+  // Int arrays
+  if (attr.ints?.length) {
+
+    return `[${attr.ints
+      .map(normalizeValue)
+      .join(', ')}]`
+  }
+
+  // String arrays
+  if (attr.strings?.length) {
+
+    return attr.strings.join(', ')
+  }
+
+  // Integer
+  if (attr.i !== undefined) {
+
+    return String(
+      normalizeValue(attr.i)
+    )
+  }
+
+  // Float
+  if (attr.f !== undefined) {
+
+    return String(attr.f)
+  }
+
+  // String
+  if (attr.s) {
+
+    return String(attr.s)
+  }
+
+  return 'N/A'
+}
+
 export default function NodeInspector({ node }: Props) {
   if (!node) {
     return (
       <div
         className="
-        flex
-        w-[380px]
-        items-center
-        justify-center
+        w-[340px]
         border-l
         border-white/10
         bg-[#111827]
+        p-6
         text-gray-500
       "
       >
-        Select an operator node
+        Select a node
       </div>
     );
   }
@@ -29,7 +90,7 @@ export default function NodeInspector({ node }: Props) {
   return (
     <div
       className="
-      w-[380px]
+      w-[340px]
       overflow-y-auto
       border-l
       border-white/10
@@ -39,19 +100,96 @@ export default function NodeInspector({ node }: Props) {
     "
     >
       {/* Header */}
+      <div className="mb-6">
+        <div
+          className="
+          mb-2
+          text-xs
+          uppercase
+          tracking-wider
+          text-gray-400
+        "
+        >
+          Operator
+        </div>
+
+        <h2
+          className="
+          text-3xl
+          font-bold
+        "
+        >
+          {data.opType}
+        </h2>
+
+        <div
+          className="
+          mt-2
+          font-mono
+          text-sm
+          text-gray-400
+        "
+        >
+          {data.domain || "ai.onnx"}
+        </div>
+      </div>
+
+      {/* Metadata */}
       <div
         className="
         mb-6
         rounded-2xl
-        border
-        border-white/10
-        bg-black/30
+        bg-black/20
         p-5
       "
       >
-        <div className="mb-2 text-sm text-gray-400">Operator</div>
+        <h3
+          className="
+          mb-4
+          text-lg
+          font-semibold
+        "
+        >
+          Metadata
+        </h3>
 
-        <h2 className="text-3xl font-bold">{data.label}</h2>
+        <div className="space-y-3 text-sm">
+          <div
+            className="
+            flex
+            items-center
+            justify-between
+          "
+          >
+            <span className="text-gray-400">Inputs</span>
+
+            <span>{data.inputs?.length || 0}</span>
+          </div>
+
+          <div
+            className="
+            flex
+            items-center
+            justify-between
+          "
+          >
+            <span className="text-gray-400">Outputs</span>
+
+            <span>{data.outputs?.length || 0}</span>
+          </div>
+
+          <div
+            className="
+            flex
+            items-center
+            justify-between
+          "
+          >
+            <span className="text-gray-400">Attributes</span>
+
+            <span>{data.attributes?.length || 0}</span>
+          </div>
+        </div>
       </div>
 
       {/* Inputs */}
@@ -59,28 +197,64 @@ export default function NodeInspector({ node }: Props) {
         className="
         mb-6
         rounded-2xl
-        border
-        border-white/10
         bg-black/20
         p-5
       "
       >
-        <h3 className="mb-4 text-lg font-semibold">Inputs</h3>
+        <h3
+          className="
+          mb-4
+          text-lg
+          font-semibold
+          text-green-400
+        "
+        >
+          Inputs
+        </h3>
 
         <div className="space-y-2">
-          {data.inputs?.map((input: string, index: number) => (
+          {data.inputs?.map((input: any, index: number) => (
             <div
               key={index}
               className="
-                  rounded-lg
-                  bg-black
-                  p-3
-                  font-mono
-                  text-sm
-                  text-green-400
-                "
+                overflow-hidden
+                rounded-lg
+                bg-black
+                p-3
+              "
             >
-              {input}
+              <div
+                className="
+                  mb-2
+                  overflow-x-auto
+                  whitespace-nowrap
+                  rounded
+                  bg-black/40
+                  p-2
+                  font-mono
+                  text-xs
+                  text-green-300
+                "
+              >
+                {input.name}
+              </div>
+
+              <div
+                className="
+                  rounded
+                  bg-white/5
+                  px-2
+                  py-1
+                  font-mono
+                  text-xs
+                  text-cyan-300
+                "
+              >
+                Shape:{" "}
+                {input.tensor?.shape
+                  ? `[${input.tensor.shape.join(", ")}]`
+                  : "unavailable"}
+              </div>
             </div>
           ))}
         </div>
@@ -91,30 +265,152 @@ export default function NodeInspector({ node }: Props) {
         className="
         mb-6
         rounded-2xl
-        border
-        border-white/10
         bg-black/20
         p-5
       "
       >
-        <h3 className="mb-4 text-lg font-semibold">Outputs</h3>
+        <h3
+          className="
+          mb-4
+          text-lg
+          font-semibold
+          text-blue-400
+        "
+        >
+          Outputs
+        </h3>
 
         <div className="space-y-2">
-          {data.outputs?.map((output: string, index: number) => (
+          {data.outputs?.map((output: any, index: number) => (
             <div
               key={index}
               className="
-                  rounded-lg
-                  bg-black
-                  p-3
-                  font-mono
-                  text-sm
-                  text-blue-400
-                "
+                overflow-hidden
+                rounded-lg
+                bg-black
+                p-3
+              "
             >
-              {output}
+              <div
+                className="
+                  mb-2
+                  overflow-x-auto
+                  whitespace-nowrap
+                  rounded
+                  bg-black/40
+                  p-2
+                  font-mono
+                  text-xs
+                  text-blue-300
+                "
+              >
+                {output.name}
+              </div>
+
+              <div
+                className="
+                rounded
+                bg-white/5
+                px-2
+                py-1
+                font-mono
+                text-xs
+                text-cyan-300
+              "
+              >
+                Shape:{" "}
+                {output.tensor?.shape
+                  ? `[${output.tensor.shape.join(", ")}]`
+                  : "unavailable"}
+              </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Attributes */}
+      <div
+        className="
+        rounded-2xl
+        bg-black/20
+        p-5
+      "
+      >
+        <h3
+          className="
+          mb-4
+          text-lg
+          font-semibold
+          text-yellow-400
+        "
+        >
+          Attributes
+        </h3>
+
+        <div className="space-y-3">
+          {data.attributes?.length > 0 ? (
+            <div
+              className="
+    overflow-hidden
+    rounded-xl
+    border
+    border-white/5
+  "
+            >
+              {data.attributes.map((attr: any, index: number) => (
+                <div
+                  key={index}
+                  className="
+            flex
+            items-start
+            justify-between
+            gap-4
+            border-b
+            border-white/5
+            bg-black/20
+            px-4
+            py-3
+            last:border-b-0
+          "
+                >
+                  {/* Attribute Name */}
+                  <div
+                    className="
+            min-w-[120px]
+            font-mono
+            text-sm
+            text-cyan-400
+          "
+                  >
+                    {attr.name}
+                  </div>
+
+                  {/* Attribute Value */}
+                  <div
+                    className="
+            flex-1
+            overflow-x-auto
+            text-right
+            font-mono
+            text-sm
+            text-gray-300
+          "
+                  >
+                    {formatAttributeValue(attr)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="
+              text-sm
+              text-gray-500
+            "
+            >
+              No attributes
+            </div>
+          )}
         </div>
       </div>
     </div>

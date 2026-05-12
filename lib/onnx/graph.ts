@@ -1,112 +1,118 @@
-import { Edge, Node } from "reactflow";
 import dagre from "dagre";
+
+import { MarkerType, Position } from "reactflow";
 
 const dagreGraph = new dagre.graphlib.Graph();
 
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 const NODE_WIDTH = 180;
-const NODE_HEIGHT = 60;
+const NODE_HEIGHT = 90;
 
-function layoutGraph(nodes: Node[], edges: Edge[]) {
+export function buildGraph(graph: any) {
   dagreGraph.setGraph({
     rankdir: "TB",
 
     nodesep: 120,
 
     ranksep: 180,
-
-    marginx: 40,
-
-    marginy: 40,
   });
 
-  // Register nodes
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, {
+  const nodes = graph.nodes.map((node: any, index: number) => {
+    const nodeId = node.name || `${node.opType}-${index}`;
+
+    dagreGraph.setNode(nodeId, {
       width: NODE_WIDTH,
       height: NODE_HEIGHT,
     });
-  });
 
-  // Register edges
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  // Compute layout
-  dagre.layout(dagreGraph);
-
-  // Apply positions
-  nodes.forEach((node) => {
-    const position = dagreGraph.node(node.id);
-
-    node.position = {
-      x: position.x - NODE_WIDTH / 2,
-      y: position.y - NODE_HEIGHT / 2,
-    };
-  });
-
-  return nodes;
-}
-
-export function buildGraph(graph: any) {
-  const nodes: Node[] = [];
-  const edges: Edge[] = [];
-
-  // Tensor → Producer map
-  const tensorProducerMap = new Map<string, string>();
-
-  // First pass:
-  // Create nodes
-  graph.node.forEach((node: any, index: number) => {
-    const nodeId = `node-${index}`;
-
-    nodes.push({
+    return {
       id: nodeId,
+
+      type: "operator",
+
       position: {
         x: 0,
         y: 0,
       },
+
+      targetPosition: Position.Top,
+
+      sourcePosition: Position.Bottom,
+
       data: {
         label: node.opType,
-        inputs: node.input || [],
-        outputs: node.output || [],
-        attributes: node.attribute || [],
+
+        opType: node.opType,
+
+        domain: node.domain,
+
+        inputs: node.inputs,
+
+        outputs: node.outputs,
+
+        attributes: node.attributes,
+
         originalNode: node,
       },
-      type: "operator",
-    });
+    };
+  });
 
-    // Register outputs
-    node.output?.forEach((output: string) => {
-      tensorProducerMap.set(output, nodeId);
+  const tensorMap = new Map<string, string>();
+
+  graph.nodes.forEach((node: any, index: number) => {
+    const nodeId = node.name || `${node.opType}-${index}`;
+
+    node.outputs.forEach((output: any) => {
+      tensorMap.set(output.name, nodeId);
     });
   });
 
-  // Second pass:
-  // Create edges from tensor dependencies
-  graph.node.forEach((node: any, index: number) => {
-    const currentNodeId = `node-${index}`;
+  const edges: any[] = [];
 
-    node.input?.forEach((inputTensor: string) => {
-      const sourceNodeId = tensorProducerMap.get(inputTensor);
+  graph.nodes.forEach((node: any, index: number) => {
+    const targetId = node.name || `${node.opType}-${index}`;
 
-      if (sourceNodeId && sourceNodeId !== currentNodeId) {
+    node.inputs.forEach((input: any) => {
+      const sourceId = tensorMap.get(input.name);
+
+      if (sourceId && sourceId !== targetId) {
         edges.push({
-          id: `${sourceNodeId}-${currentNodeId}-${inputTensor}`,
-          source: sourceNodeId,
-          target: currentNodeId,
-          label: inputTensor,
+          id: `${sourceId}-${targetId}-${input.name}`,
+
+          source: sourceId,
+
+          target: targetId,
+
+          label: input.tensor?.shape
+            ? `[${input.tensor.shape.join(", ")}]`
+            : "",
+
+          type: "smoothstep",
+
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+          },
         });
+
+        dagreGraph.setEdge(sourceId, targetId);
       }
     });
   });
 
-  const layoutedNodes = layoutGraph(nodes, edges);
+  dagre.layout(dagreGraph);
+
+  nodes.forEach((node: any) => {
+    const pos = dagreGraph.node(node.id);
+
+    node.position = {
+      x: pos.x - NODE_WIDTH / 2,
+      y: pos.y - NODE_HEIGHT / 2,
+    };
+  });
 
   return {
-    nodes: layoutedNodes,
+    nodes,
     edges,
   };
 }
