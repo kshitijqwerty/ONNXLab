@@ -29,7 +29,7 @@ export async function parseOnnxModel(
 ): Promise<ParsedModel> {
 
   const session = await ort.InferenceSession.create(arrayBuffer, {
-    executionProviders: ['wasm']
+    executionProviders: ['webgpu', 'wasm']
   })
 
   console.log(session.inputMetadata)

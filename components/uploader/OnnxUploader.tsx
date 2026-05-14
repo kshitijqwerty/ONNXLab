@@ -1,13 +1,14 @@
 "use client";
 
 import * as ort from "onnxruntime-web";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { parseOnnxModel } from "@/lib/onnx/parser";
 import { buildGraph } from "@/lib/onnx/graph";
 import ModelGraph from "@/components/graph/ModelGraph";
 import { parseGraph } from "@/lib/onnx/graphParser";
 import { createSession } from "@/lib/onnx/inference";
 import InputPanel from "@/components/inference/InputPanel";
+import { checkWebGPU } from "@/lib/onnx/checkWebGpu";
 
 export default function OnnxUploader() {
   const [fileName, setFileName] = useState<string>("");
@@ -16,6 +17,18 @@ export default function OnnxUploader() {
   const [modelInfo, setModelInfo] = useState<any>(null);
   const [graph, setGraph] = useState<any>(null);
   const [session, setSession] = useState<ort.InferenceSession | null>(null);
+  const [gpuEnabled, setGpuEnabled] = useState(false);
+
+  // GPU check
+  useEffect(() => {
+    async function check() {
+      const supported = await checkWebGPU();
+
+      setGpuEnabled(supported);
+    }
+
+    check();
+  }, []);
 
   async function handleFile(file: File) {
     setError("");
@@ -82,6 +95,23 @@ export default function OnnxUploader() {
 
   return (
     <div className="w-full space-y-6">
+      <div
+        className="
+            mt-3
+            inline-flex
+            items-center
+            rounded-full
+            border
+            border-cyan-400/20
+            bg-cyan-400/10
+            px-4
+            py-2
+            text-sm
+            text-cyan-300
+          "
+      >
+        {gpuEnabled ? "WebGPU Enabled" : "Running on WASM"}
+      </div>
       {/* Upload Section */}
       <div
         className="
