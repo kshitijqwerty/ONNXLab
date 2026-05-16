@@ -2,6 +2,10 @@
 
 A browser-native ONNX model visualization and inference platform built with Next.js, React Flow, and ONNX Runtime Web.
 
+> 🚀 **Live Demo:** [onnxlab.kgup.me](https://onnxlab.kgup.me)
+
+![ONNXLab Screenshot](public/onnxlab.png)
+
 ---
 
 ## Features
@@ -47,22 +51,33 @@ Works with ImageNet, CIFAR, and any custom classification dataset.
 
 ## Tech Stack
 
-| Layer | Libraries |
-|---|---|
-| Frontend | Next.js, React, TypeScript, TailwindCSS |
-| Graph | React Flow, Dagre |
-| ML Runtime | ONNX Runtime Web, WebAssembly, WebGPU |
+| Layer      | Libraries                                    |
+| ---------- | -------------------------------------------- |
+| Frontend   | Next.js, React, TypeScript, TailwindCSS      |
+| Graph      | React Flow, Dagre                            |
+| ML Runtime | ONNX Runtime Web, WebAssembly, WebGPU        |
+
+---
+
+## Prerequisites
+
+- **Node.js** v18 or higher
+- **npm** v9 or higher
+- A modern **Chromium-based browser** (Chrome 113+, Edge 113+) for full WebGPU support  
+  > ⚠️ Firefox and Safari have limited or no WebGPU support. The app will fall back to WebAssembly automatically, but GPU-accelerated inference requires Chrome or Edge.
 
 ---
 
 ## Getting Started
 
 ```bash
-git clone https://github.com/yourusername/onnxlab.git
+git clone https://github.com/kshitijqwerty/onnxlab.git
 cd onnxlab
 npm install
 npm run dev
 ```
+
+Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
@@ -78,17 +93,23 @@ npm run dev
 
 ONNXLab uses both WebGPU and WebAssembly execution providers:
 
-```ts
+```js
 executionProviders: ['webgpu', 'wasm']
 ```
 
-It automatically uses GPU acceleration when available and falls back to WASM on unsupported devices.
+It automatically uses GPU acceleration when available and falls back to WASM on unsupported devices. For best performance, use Chrome or Edge with hardware acceleration enabled.
 
 ---
 
 ## Supported Models
 
-ResNet, MobileNet, YOLO, ViT, BERT, segmentation models, classification models, and any custom ONNX model.
+| Category         | Examples                                      |
+| ---------------- | --------------------------------------------- |
+| Classification   | ResNet, MobileNet, ViT, EfficientNet, CIFAR   |
+| Object Detection | YOLO (v5, v8)                                 |
+| Segmentation     | Segment Anything, DeepLab                     |
+| NLP              | BERT, DistilBERT                              |
+| Custom           | Any valid `.onnx` model                       |
 
 ---
 
@@ -119,13 +140,19 @@ src/
 
 ## Roadmap
 
-- Tensor heatmaps and embedding visualization
-- YOLO bounding boxes and segmentation overlays
-- Audio model support
-- Performance benchmarking and tensor profiling
-- Multi-model comparison
-- Saved sessions and drag-and-drop workflow
-- Cloud model hosting
+- [ ] Tensor heatmaps and embedding visualization
+- [ ] YOLO bounding boxes and segmentation overlays
+- [ ] Audio model support
+- [ ] Performance benchmarking and tensor profiling
+- [ ] Multi-model comparison
+- [ ] Saved sessions and drag-and-drop workflow
+- [ ] Cloud model hosting
+
+---
+
+## Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you'd like to change, then submit a pull request.
 
 ---
 
