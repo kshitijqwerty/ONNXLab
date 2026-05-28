@@ -112,9 +112,17 @@ export default function OnnxUploader() {
   }
 
   const hasModel = !!modelInfo;
+  type TabId = "overview" | "graph" | "inference";
+  const [activeTab, setActiveTab] = useState<TabId>("graph");
+
+  const tabs: { id: TabId; label: string; badge?: string | null }[] = [
+    { id: "overview", label: "Overview", badge: fileName || null },
+    { id: "graph", label: "Graph", badge: graph ? `${graph.nodes.length} nodes` : null },
+    { id: "inference", label: "Inference" },
+  ];
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4">
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300">
@@ -207,64 +215,91 @@ export default function OnnxUploader() {
 
       {/* Main Workspace */}
       {hasModel && (
-        <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-1 space-y-6">
-            {/* Model Info */}
-            {modelInfo && (
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white backdrop-blur-xl">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Model Information</h3>
-                  <span className="text-xs text-gray-500">{formatSize(fileSize)}</span>
-                </div>
+        <div className="min-w-0">
+          {/* Tab Bar */}
+          <div className="sticky top-0 z-10 -mx-6 mb-6 border-b border-white/10 bg-[#0B1020]/95 px-6 backdrop-blur-xl">
+            <nav className="flex gap-1">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${
+                      isActive
+                        ? "border-cyan-400 text-white"
+                        : "border-transparent text-gray-500 hover:border-gray-600 hover:text-gray-300"
+                    }`}
+                  >
+                    {tab.label}
+                    {tab.badge && (
+                      <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[11px] text-gray-400">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
 
-                <div className="mb-2 flex items-center gap-2 text-sm text-gray-400">
-                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-xs">{fileName}</span>
-                  <span className="text-gray-600">·</span>
-                  <span>{modelInfo.inputs.length} input{modelInfo.inputs.length !== 1 ? "s" : ""}</span>
-                  <span className="text-gray-600">·</span>
-                  <span>{modelInfo.outputs.length} output{modelInfo.outputs.length !== 1 ? "s" : ""}</span>
-                </div>
+          {/* Tab Content */}
+          {activeTab === "overview" && modelInfo && (
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white backdrop-blur-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold">Model Information</h3>
+                <span className="text-xs text-gray-500">{formatSize(fileSize)}</span>
+              </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-400">Inputs</h4>
-                    <div className="space-y-2">
-                      {modelInfo.inputs.map((input: ParsedInput) => (
-                        <div key={input.name} className="rounded-xl bg-black/20 p-3 text-xs">
-                          <div className="mb-1 font-mono text-green-300">{input.name}</div>
-                          <div className="flex gap-3 text-gray-400">
-                            <span>{input.type}</span>
-                            <span>[{input.dimensions?.join(", ")}]</span>
-                          </div>
+              <div className="mb-2 flex items-center gap-2 text-sm text-gray-400">
+                <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-xs">{fileName}</span>
+                <span className="text-gray-600">·</span>
+                <span>{modelInfo.inputs.length} input{modelInfo.inputs.length !== 1 ? "s" : ""}</span>
+                <span className="text-gray-600">·</span>
+                <span>{modelInfo.outputs.length} output{modelInfo.outputs.length !== 1 ? "s" : ""}</span>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-400">Inputs</h4>
+                  <div className="space-y-2">
+                    {modelInfo.inputs.map((input: ParsedInput) => (
+                      <div key={input.name} className="rounded-xl bg-black/20 p-3 text-xs">
+                        <div className="mb-1 font-mono text-green-300">{input.name}</div>
+                        <div className="flex gap-3 text-gray-400">
+                          <span>{input.type}</span>
+                          <span>[{input.dimensions?.join(", ")}]</span>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
+                </div>
 
-                  <div>
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-400">Outputs</h4>
-                    <div className="space-y-2">
-                      {modelInfo.outputs.map((output: ParsedInput) => (
-                        <div key={output.name} className="rounded-xl bg-black/20 p-3 text-xs">
-                          <div className="mb-1 font-mono text-blue-300">{output.name}</div>
-                          <div className="flex gap-3 text-gray-400">
-                            <span>{output.type}</span>
-                            <span>[{output.dimensions?.join(", ")}]</span>
-                          </div>
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-400">Outputs</h4>
+                  <div className="space-y-2">
+                    {modelInfo.outputs.map((output: ParsedInput) => (
+                      <div key={output.name} className="rounded-xl bg-black/20 p-3 text-xs">
+                        <div className="mb-1 font-mono text-blue-300">{output.name}</div>
+                        <div className="flex gap-3 text-gray-400">
+                          <span>{output.type}</span>
+                          <span>[{output.dimensions?.join(", ")}]</span>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Graph */}
-            {graph && <ModelGraph nodes={graph.nodes} edges={graph.edges} />}
+          {activeTab === "graph" && graph && (
+            <ModelGraph nodes={graph.nodes} edges={graph.edges} />
+          )}
 
-            {/* Inference */}
-            {session && <InputPanel session={session} />}
-          </div>
+          {activeTab === "inference" && session && (
+            <InputPanel session={session} />
+          )}
         </div>
       )}
     </div>
