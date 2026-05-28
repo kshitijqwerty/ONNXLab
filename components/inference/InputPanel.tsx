@@ -51,17 +51,21 @@ export default function InputPanel({ session }: Props) {
     try {
       setRunning(true);
       const shape = meta.shape ?? [];
-      const height = Number(shape[2]) || 224;
-      const width = Number(shape[3]) || 224;
 
-      // Revoke previous URL
+      // Detect NCHW ([1,3,H,W]) vs NHWC ([1,H,W,3]) from model metadata
+      const cFirst = Number(shape[1]);
+      const cLast = shape.length >= 4 ? Number(shape[shape.length - 1]) : 0;
+      const nhwc = (cLast === 1 || cLast === 3) && cFirst !== 1 && cFirst !== 3;
+
+      const height = Number(nhwc ? shape[1] : shape[2]) || 640;
+      const width = Number(nhwc ? shape[2] : shape[3]) || 640;
+
       if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
 
       const url = URL.createObjectURL(file);
       prevUrlRef.current = url;
       setImageUrl(url);
 
-      // Get original image dimensions
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const el = new Image();
         el.onload = () => resolve(el);
@@ -70,7 +74,8 @@ export default function InputPanel({ session }: Props) {
       });
       setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
 
-      const tensor = await imageToTensor(file, width, height);
+      const format = nhwc ? "nhwc" : "nchw";
+      const tensor = await imageToTensor(file, width, height, format);
       const results = await runInference(session, meta.name, tensor);
       const parsed = parseOutputs(results);
       setOutputs(parsed);
