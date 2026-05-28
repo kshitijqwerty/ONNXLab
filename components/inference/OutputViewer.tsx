@@ -16,7 +16,7 @@ const MAX_RAW_VALUES = 50;
 function ConfidenceBar({ value, maxValue }: { value: number; maxValue: number }) {
   const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
   return (
-    <div className="h-5 w-full rounded-full bg-black/40">
+    <div className="h-5 w-full overflow-hidden rounded-full bg-black/40">
       <div
         className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-300 transition-all"
         style={{ width: `${Math.max(pct, 2)}%` }}
@@ -32,7 +32,7 @@ export default function OutputViewer({
   inputShape,
 }: Props) {
   return (
-    <div className="mt-6 rounded-3xl border border-green-400/20 bg-green-400/[0.03] p-6">
+    <div className="mt-6 max-w-full rounded-3xl border border-green-400/20 bg-green-400/[0.03] p-6">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-xl font-bold text-green-300">Inference Outputs</h2>

@@ -208,7 +208,7 @@ export default function OnnxUploader() {
       {/* Main Workspace */}
       {hasModel && (
         <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
-          <div className="flex-1 space-y-6">
+          <div className="min-w-0 flex-1 space-y-6">
             {/* Model Info */}
             {modelInfo && (
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white backdrop-blur-xl">
