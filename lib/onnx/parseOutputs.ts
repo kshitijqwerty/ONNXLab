@@ -1,14 +1,11 @@
-export function parseOutputs(outputs: any) {
+export function parseOutputs(outputs: Record<string, any>) {
   const parsed: any[] = [];
 
-  Object.entries(outputs).forEach(([name, tensor]: any) => {
-    parsed.push({
-      name,
-      type: tensor.type,
-      dims: tensor.dims,
-      data: Array.from(tensor.data),
-    });
-  });
+  for (const [name, tensor] of Object.entries(outputs)) {
+    const data: Float32Array | BigInt64Array | Int32Array | Uint8Array =
+      tensor.data;
+    parsed.push({ name, type: tensor.type, dims: tensor.dims, data });
+  }
 
   return parsed;
 }

@@ -3,15 +3,17 @@ interface IndexedValue {
   value: number;
 }
 
-export function topK(values: number[], k = 5) {
+export function topK(values: ArrayLike<number>, k = 5) {
   if (k <= 0) return [];
   if (k >= values.length) {
-    return values
-      .map((value, index) => ({ index, value }))
-      .sort((a, b) => b.value - a.value);
+    const indexed: IndexedValue[] = [];
+    for (let i = 0; i < values.length; i++) {
+      indexed.push({ index: i, value: values[i] });
+    }
+    return indexed.sort((a, b) => b.value - a.value);
   }
 
-  // Min-heap by keeping array sorted ascending; result[0] is the smallest
+  // Min-heap by keeping array sorted ascending; heap[heap.length - 1] is min
   const heap: IndexedValue[] = [];
 
   for (let i = 0; i < values.length; i++) {
