@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 import { detectInputType } from "@/lib/onnx/inputType";
 import { imageToTensor } from "@/lib/onnx/imageTensor";
@@ -22,74 +22,53 @@ interface Props {
   session: any;
 }
 
+function Spinner() {
+  return (
+    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
 export default function InputPanel({ session }: Props) {
   const [outputs, setOutputs] = useState<OutputTensor[] | null>(null);
   const [running, setRunning] = useState(false);
   const [labels, setLabels] = useState<string[]>([]);
+  const [inferenceError, setInferenceError] = useState<string>("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   if (!session) {
     return null;
   }
 
   async function handleImageInference(file: File, meta: InputMetadata) {
+    setInferenceError("");
     try {
       setRunning(true);
-
       const shape = meta.shape ?? [];
-
       const height = Number(shape[2]) || 224;
-
       const width = Number(shape[3]) || 224;
 
-      // Convert image -> tensor
       const tensor = await imageToTensor(file, width, height);
-
-      // Run inference
       const results = await runInference(session, meta.name, tensor);
-
-      // Parse outputs
       const parsed = parseOutputs(results);
-
       setOutputs(parsed);
     } catch (error) {
       console.error(error);
+      setInferenceError(error instanceof Error ? error.message : "Inference failed");
     } finally {
       setRunning(false);
     }
   }
 
   return (
-    <div
-      className="
-        mt-6
-        rounded-3xl
-        border
-        border-white/10
-        bg-[#111827]
-        p-6
-        text-white
-        shadow-2xl
-      "
-    >
+    <div className="rounded-3xl border border-white/10 bg-[#111827] p-6 text-white shadow-2xl">
       {/* Header */}
       <div className="mb-6">
-        <h2
-          className="
-            text-2xl
-            font-bold
-          "
-        >
-          Model Inputs
-        </h2>
-
-        <p
-          className="
-            mt-2
-            text-sm
-            text-gray-400
-          "
-        >
-          Runtime-detected ONNX model inputs
+        <h2 className="text-xl font-bold">Run Inference</h2>
+        <p className="mt-1 text-sm text-gray-400">
+          Provide input data to run the model
         </p>
       </div>
 
@@ -97,307 +76,114 @@ export default function InputPanel({ session }: Props) {
       <div className="space-y-4">
         {session.inputMetadata?.map((meta: InputMetadata, index: number) => {
           const shape = meta.shape || [];
-
           const inputType = detectInputType(shape);
 
           return (
             <div
               key={index}
-              className="
-                  rounded-2xl
-                  border
-                  border-white/5
-                  bg-black/20
-                  p-5
-                "
+              className={`rounded-2xl border p-5 transition ${
+                running ? "border-white/5 opacity-50" : "border-white/5 bg-black/20"
+              }`}
             >
-              {/* Name */}
-              <div className="mb-4">
-                <div
-                  className="
-                      mb-2
-                      text-xs
-                      uppercase
-                      tracking-wider
-                      text-gray-500
-                    "
-                >
-                  Input Name
-                </div>
-
-                <div
-                  className="
-                      overflow-x-auto
-                      whitespace-nowrap
-                      rounded-lg
-                      bg-black/40
-                      p-3
-                      font-mono
-                      text-sm
-                      text-cyan-300
-                    "
-                >
+              {/* Name + Type + Shape row */}
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="overflow-x-auto whitespace-nowrap rounded-lg bg-black/40 px-3 py-2 font-mono text-sm text-cyan-300">
                   {meta.name}
                 </div>
+                <span className="rounded-md bg-black/30 px-2 py-1 font-mono text-[11px] text-green-300">
+                  {meta.type || "unknown"}
+                </span>
+                <span className="rounded-md bg-black/30 px-2 py-1 font-mono text-[11px] text-blue-300">
+                  [{shape.length ? shape.join(", ") : "unknown"}]
+                </span>
               </div>
 
-              {/* Metadata */}
-              <div
-                className="
-                    mb-4
-                    grid
-                    grid-cols-2
-                    gap-4
-                  "
-              >
-                {/* Type */}
-                <div
-                  className="
-                      rounded-xl
-                      bg-black/30
-                      p-3
-                    "
-                >
-                  <div
-                    className="
-                        mb-1
-                        text-xs
-                        uppercase
-                        tracking-wide
-                        text-gray-500
-                      "
-                  >
-                    Type
-                  </div>
-
-                  <div
-                    className="
-                        font-mono
-                        text-sm
-                        text-green-300
-                      "
-                  >
-                    {meta.type || "unknown"}
-                  </div>
-                </div>
-
-                {/* Shape */}
-                <div
-                  className="
-                      rounded-xl
-                      bg-black/30
-                      p-3
-                    "
-                >
-                  <div
-                    className="
-                        mb-1
-                        text-xs
-                        uppercase
-                        tracking-wide
-                        text-gray-500
-                      "
-                  >
-                    Shape
-                  </div>
-
-                  <div
-                    className="
-                        overflow-x-auto
-                        whitespace-nowrap
-                        font-mono
-                        text-sm
-                        text-blue-300
-                      "
-                  >
-                    [{shape.length ? shape.join(", ") : "unknown"}]
-                  </div>
-                </div>
-              </div>
-
-              {/* INPUT UI */}
-              <div>
-                <div
-                  className="
-                      mb-2
-                      text-xs
-                      uppercase
-                      tracking-wide
-                      text-gray-500
-                    "
-                >
-                  Input Method
-                </div>
-
-                {/* IMAGE INPUT */}
-                {inputType === "image" && (
-                  <div
-                    className="
-                        rounded-2xl
-                        border
-                        border-dashed
-                        border-cyan-400/30
-                        bg-cyan-400/5
-                        p-6
-                      "
-                  >
-                    {/* Image Upload */}
-                    <div className="mb-5">
-                      <div
-                        className="
-                            mb-2
-                            text-xs
-                            uppercase
-                            tracking-wide
-                            text-gray-500
-                          "
-                      >
-                        Upload Image
-                      </div>
-
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-
-                          if (!file) {
-                            return;
-                          }
-
-                          await handleImageInference(file, meta);
-                        }}
-                        className="
-                            block
-                            w-full
-                            text-sm
-                          "
-                      />
+              {/* IMAGE INPUT */}
+              {inputType === "image" && (
+                <div className="rounded-2xl border border-dashed border-cyan-400/30 bg-cyan-400/[0.03] p-5">
+                  <div className="mb-4">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Inference Image
                     </div>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      disabled={running}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        await handleImageInference(file, meta);
+                      }}
+                      className="block w-full text-sm text-gray-400 file:mr-3 file:cursor-pointer file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white file:transition hover:file:bg-blue-500 disabled:opacity-50"
+                    />
+                  </div>
 
-                    {/* Labels Upload */}
-                    <div>
-                      <div
-                        className="
-                            mb-2
-                            text-xs
-                            uppercase
-                            tracking-wide
-                            text-gray-500
-                          "
-                      >
-                        Optional Labels JSON
-                      </div>
-
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-
-                          if (!file) {
-                            return;
-                          }
-
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Optional Labels JSON
+                    </div>
+                    <input
+                      type="file"
+                      accept=".json"
+                      disabled={running}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
                           const text = await file.text();
-
                           const parsed = JSON.parse(text);
-
                           setLabels(parsed);
-                        }}
-                        className="
-                            block
-                            w-full
-                            text-sm
-                          "
-                      />
-                      {/* Labels Status */}
-                      {labels.length > 0 && (
-                        <div
-                          className="
-                            mt-3
-                            rounded-xl
-                            border
-                            border-green-400/20
-                            bg-green-400/10
-                            px-4
-                            py-3
-                            text-sm
-                            text-green-300
-                          "
-                        >
-                          Loaded{" "}
-                          <span className="font-semibold">{labels.length}</span>{" "}
-                          labels
-                        </div>
-                      )}
-                    </div>
+                        } catch {
+                          setInferenceError("Invalid JSON file");
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-400 file:mr-3 file:cursor-pointer file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white file:transition hover:file:bg-blue-500 disabled:opacity-50"
+                    />
+                    {labels.length > 0 && (
+                      <div className="mt-3 rounded-xl border border-green-400/20 bg-green-400/10 px-4 py-2.5 text-sm text-green-300">
+                        Loaded <span className="font-semibold">{labels.length}</span> labels
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* VECTOR INPUT */}
-                {inputType === "vector" && (
-                  <textarea
-                    placeholder="
-0.1, 0.2, 0.3 ...
-                      "
-                    rows={4}
-                    className="
-                        w-full
-                        rounded-2xl
-                        border
-                        border-white/10
-                        bg-black/40
-                        p-4
-                        font-mono
-                        text-sm
-                        text-white
-                        outline-none
-                      "
-                  />
-                )}
+              {/* VECTOR INPUT */}
+              {inputType === "vector" && (
+                <textarea
+                  disabled={running}
+                  placeholder="0.1, 0.2, 0.3, ..."
+                  rows={4}
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-50"
+                />
+              )}
 
-                {/* GENERIC TENSOR */}
-                {inputType === "tensor" && (
-                  <textarea
-                    placeholder="
-Tensor values...
-                      "
-                    rows={6}
-                    className="
-                        w-full
-                        rounded-2xl
-                        border
-                        border-white/10
-                        bg-black/40
-                        p-4
-                        font-mono
-                        text-sm
-                        text-white
-                        outline-none
-                      "
-                  />
-                )}
-              </div>
+              {/* GENERIC TENSOR */}
+              {inputType === "tensor" && (
+                <textarea
+                  disabled={running}
+                  placeholder="Tensor values..."
+                  rows={6}
+                  className="w-full rounded-2xl border border-white/10 bg-black/40 p-4 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-50"
+                />
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Loading */}
+      {/* Inference Error */}
+      {inferenceError && (
+        <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          {inferenceError}
+        </div>
+      )}
+
+      {/* Running indicator */}
       {running && (
-        <div
-          className="
-            mt-6
-            rounded-2xl
-            border
-            border-cyan-400/20
-            bg-cyan-400/5
-            p-4
-            text-sm
-            text-cyan-300
-          "
-        >
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.03] px-5 py-4 text-sm text-cyan-300">
+          <Spinner />
           Running inference...
         </div>
       )}
