@@ -18,12 +18,18 @@ export function analyzeTensor(output: any) {
     };
   }
 
-  // Stats
-  const min = Math.min(...data);
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
 
-  const max = Math.max(...data);
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+  }
 
-  const mean = data.reduce((a: number, b: number) => a + b, 0) / total;
+  const mean = sum / total;
 
   // Tensor type heuristics
 
