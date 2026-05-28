@@ -1,7 +1,7 @@
 "use client";
 
 import * as ort from "onnxruntime-web";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { parseOnnxModel } from "@/lib/onnx/parser";
 import type { ParsedModel, ParsedInput } from "@/lib/onnx/parser";
 import { buildGraph } from "@/lib/onnx/graph";
@@ -12,246 +12,261 @@ import { createSession } from "@/lib/onnx/inference";
 import InputPanel from "@/components/inference/InputPanel";
 import { checkWebGPU } from "@/lib/onnx/checkWebGpu";
 
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function Spinner() {
+  return (
+    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+      <circle
+        className="opacity-25"
+        cx="12" cy="12" r="10"
+        stroke="currentColor" strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}
+
 export default function OnnxUploader() {
   const [fileName, setFileName] = useState<string>("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [fileSize, setFileSize] = useState<number>(0);
   const [error, setError] = useState<string>("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(false);
   const [modelInfo, setModelInfo] = useState<ParsedModel | null>(null);
   const [graph, setGraph] = useState<GraphResult | null>(null);
   const [session, setSession] = useState<ort.InferenceSession | null>(null);
   const [gpuEnabled, setGpuEnabled] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
-  // GPU check
   useEffect(() => {
-    async function check() {
-      const supported = await checkWebGPU();
-
-      setGpuEnabled(supported);
-    }
-
-    check();
+    checkWebGPU().then(setGpuEnabled);
   }, []);
 
-  async function handleFile(file: File) {
+  const handleFile = useCallback(async (file: File) => {
     setError("");
-
-    if (!file.name.endsWith(".onnx")) {
-      setError("Please upload a valid ONNX file");
+    if (!file.name.toLowerCase().endsWith(".onnx")) {
+      setError("Please select a valid .onnx file");
       return;
     }
 
     try {
       setLoading(true);
-
-      // Read file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
 
-      const runtimeSession = await createSession(arrayBuffer);
+      const [runtimeSession, parsed, realGraph] = await Promise.all([
+        createSession(arrayBuffer),
+        parseOnnxModel(arrayBuffer),
+        parseGraph(arrayBuffer),
+      ]);
 
       setSession(runtimeSession);
-
       setFileName(file.name);
-
-      const parsed = await parseOnnxModel(arrayBuffer);
+      setFileSize(file.size);
       setModelInfo(parsed);
-
-      const realGraph = await parseGraph(arrayBuffer);
-      const generatedGraph = buildGraph(realGraph);
-
-      setGraph(generatedGraph);
+      setGraph(buildGraph(realGraph));
     } catch (err) {
       console.error(err);
-      setError("Failed to read ONNX file");
+      setError(err instanceof Error ? err.message : "Failed to load ONNX file");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
-
+    setDragging(false);
     const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }
 
-    if (file) {
-      handleFile(file);
-    }
+  function onDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(true);
+  }
+
+  function onDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragging(false);
   }
 
   function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-
-    if (file) {
-      handleFile(file);
-    }
+    if (file) handleFile(file);
   }
+
+  function reset() {
+    setFileName("");
+    setFileSize(0);
+    setError("");
+    setModelInfo(null);
+    setGraph(null);
+    setSession(null);
+  }
+
+  const hasModel = !!modelInfo;
 
   return (
     <div className="w-full space-y-6">
-      <div
-        className="
-            mt-3
-            inline-flex
-            items-center
-            rounded-full
-            border
-            border-cyan-400/20
-            bg-cyan-400/10
-            px-4
-            py-2
-            text-sm
-            text-cyan-300
-          "
-      >
-        {gpuEnabled ? "WebGPU Enabled" : "Running on WASM"}
-      </div>
-      {/* Upload Section */}
-      <div
-        className="
-      w-full
-      rounded-3xl
-      border
-      border-white/10
-      bg-white/5
-      p-10
-      backdrop-blur-xl
-    "
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={onDrop}
-      >
-        <div className="flex flex-col items-center text-center">
-          <h2 className="mb-4 text-4xl font-bold text-white">
-            Upload ONNX Model
-          </h2>
-
-          <p className="mb-8 text-gray-400">Drag and drop your ONNX file</p>
-
-          <input
-            type="file"
-            accept=".onnx"
-            onChange={onSelect}
-            className="hidden"
-            id="onnx-upload"
-          />
-
-          <label
-            htmlFor="onnx-upload"
-            className="
-            cursor-pointer
-            rounded-2xl
-            bg-blue-600
-            px-8
-            py-4
-            font-medium
-            text-white
-            transition
-            hover:bg-blue-500
-          "
-          >
-            Select File
-          </label>
-
-          {fileName && (
-            <p className="mt-4 text-green-400">Loaded: {fileName}</p>
-          )}
+      {/* Top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm text-cyan-300">
+          <span className={`h-2 w-2 rounded-full ${gpuEnabled ? "bg-green-400" : "bg-yellow-400"}`} />
+          {gpuEnabled ? "WebGPU" : "WASM"}
         </div>
+
+        {hasModel && (
+          <button
+            onClick={reset}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-400 transition hover:border-red-400/30 hover:bg-red-400/10 hover:text-red-300"
+          >
+            Load New Model
+          </button>
+        )}
       </div>
+
+      {/* Upload Section — hidden when model is loaded */}
+      {!hasModel && (
+        <div
+          className={`w-full rounded-3xl border-2 border-dashed p-10 text-center backdrop-blur-xl transition-colors ${
+            dragging
+              ? "border-cyan-400/60 bg-cyan-400/10"
+              : "border-white/10 bg-white/5"
+          }`}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="rounded-2xl bg-white/5 p-6">
+              <svg
+                className="h-10 w-10 text-gray-500"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round" strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold text-white">Upload ONNX Model</h2>
+            <p className="text-sm text-gray-400">
+              Drag & drop your <span className="font-mono text-cyan-400">.onnx</span> file here, or click to browse
+            </p>
+
+            <input
+              type="file"
+              accept=".onnx"
+              onChange={onSelect}
+              className="hidden"
+              id="onnx-upload"
+            />
+            <label
+              htmlFor="onnx-upload"
+              className="cursor-pointer rounded-2xl bg-blue-600 px-8 py-3 font-medium text-white transition hover:bg-blue-500"
+            >
+              Select File
+            </label>
+
+            {loading && (
+              <div className="flex items-center gap-3 text-sm text-cyan-300">
+                <Spinner /> Loading model...
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-5 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay when model is loaded but still processing */}
+      {loading && hasModel && (
+        <div className="flex items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-12 text-cyan-300 backdrop-blur-xl">
+          <Spinner /> Processing model...
+        </div>
+      )}
+
+      {/* Error after model was loaded */}
+      {error && hasModel && (
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-6 py-4 text-sm text-red-300">
+          {error}
+        </div>
+      )}
 
       {/* Main Workspace */}
-      <div
-        className="
-      flex
-      w-full
-      gap-6
-      items-start
-    "
-      >
-        {/* Left Side */}
-        <div className="flex-1 space-y-6">
-          {/* Model Info */}
-          {modelInfo && (
-            <div
-              className="
-            rounded-3xl
-            border
-            border-white/10
-            bg-white/5
-            p-6
-            text-white
-            backdrop-blur-xl
-          "
-            >
-              <h3 className="mb-6 text-2xl font-bold">Model Information</h3>
+      {hasModel && (
+        <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="flex-1 space-y-6">
+            {/* Model Info */}
+            {modelInfo && (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white backdrop-blur-xl">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Model Information</h3>
+                  <span className="text-xs text-gray-500">{formatSize(fileSize)}</span>
+                </div>
 
-              {/* Inputs */}
-              <div className="mb-6">
-                <h4 className="mb-3 text-lg font-semibold">Inputs</h4>
+                <div className="mb-2 flex items-center gap-2 text-sm text-gray-400">
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-xs">{fileName}</span>
+                  <span className="text-gray-600">·</span>
+                  <span>{modelInfo.inputs.length} input{modelInfo.inputs.length !== 1 ? "s" : ""}</span>
+                  <span className="text-gray-600">·</span>
+                  <span>{modelInfo.outputs.length} output{modelInfo.outputs.length !== 1 ? "s" : ""}</span>
+                </div>
 
-                <div className="space-y-3">
-                  {modelInfo.inputs.map((input: ParsedInput) => (
-                    <div
-                      key={input.name}
-                      className="
-                      rounded-2xl
-                      bg-black/20
-                      p-4
-                    "
-                    >
-                      <p>
-                        <strong>Name:</strong> {input.name}
-                      </p>
-
-                      <p>
-                        <strong>Type:</strong> {input.type}
-                      </p>
-
-                      <p>
-                        <strong>Shape:</strong> [{input.dimensions?.join(", ")}]
-                      </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-green-400">Inputs</h4>
+                    <div className="space-y-2">
+                      {modelInfo.inputs.map((input: ParsedInput) => (
+                        <div key={input.name} className="rounded-xl bg-black/20 p-3 text-xs">
+                          <div className="mb-1 font-mono text-green-300">{input.name}</div>
+                          <div className="flex gap-3 text-gray-400">
+                            <span>{input.type}</span>
+                            <span>[{input.dimensions?.join(", ")}]</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+
+                  <div>
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-blue-400">Outputs</h4>
+                    <div className="space-y-2">
+                      {modelInfo.outputs.map((output: ParsedInput) => (
+                        <div key={output.name} className="rounded-xl bg-black/20 p-3 text-xs">
+                          <div className="mb-1 font-mono text-blue-300">{output.name}</div>
+                          <div className="flex gap-3 text-gray-400">
+                            <span>{output.type}</span>
+                            <span>[{output.dimensions?.join(", ")}]</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Outputs */}
-              <div>
-                <h4 className="mb-3 text-lg font-semibold">Outputs</h4>
+            {/* Graph */}
+            {graph && <ModelGraph nodes={graph.nodes} edges={graph.edges} />}
 
-                <div className="space-y-3">
-                  {modelInfo.outputs.map((output: ParsedInput) => (
-                    <div
-                      key={output.name}
-                      className="
-                      rounded-2xl
-                      bg-black/20
-                      p-4
-                    "
-                    >
-                      <p>
-                        <strong>Name:</strong> {output.name}
-                      </p>
-
-                      <p>
-                        <strong>Type:</strong> {output.type}
-                      </p>
-
-                      <p>
-                        <strong>Shape:</strong> [{output.dimensions?.join(", ")}
-                        ]
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Graph */}
-          {graph && <ModelGraph nodes={graph.nodes} edges={graph.edges} />}
-          {session && <InputPanel session={session} />}
+            {/* Inference */}
+            {session && <InputPanel session={session} />}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
