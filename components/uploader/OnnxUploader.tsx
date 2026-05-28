@@ -47,26 +47,16 @@ export default function OnnxUploader() {
       const runtimeSession = await createSession(arrayBuffer);
 
       setSession(runtimeSession);
-      console.log(runtimeSession);
-
-      console.log("ONNX File Loaded");
-      console.log("Filename:", file.name);
-      console.log("Size:", file.size);
-      console.log("ArrayBuffer:", arrayBuffer);
 
       setFileName(file.name);
 
-      // Parse ONNX model
       const parsed = await parseOnnxModel(arrayBuffer);
-      console.log("Parsed Model:", parsed);
       setModelInfo(parsed);
 
       const realGraph = await parseGraph(arrayBuffer);
       const generatedGraph = buildGraph(realGraph);
 
       setGraph(generatedGraph);
-      // const graphData = await parseGraph(arrayBuffer)
-      // console.log(graphData)
     } catch (err) {
       console.error(err);
       setError("Failed to read ONNX file");

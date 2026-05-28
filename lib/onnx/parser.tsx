@@ -11,19 +11,6 @@ export interface ParsedModel {
   outputs: ParsedInput[]
 }
 
-// Function to detect onnx model type
-function detectModelType(shape: number[]) {
-
-  if (
-    shape.length === 4 &&
-    shape[1] === 3
-  ) {
-    return 'image'
-  }
-
-  return 'unknown'
-}
-
 export async function parseOnnxModel(
   arrayBuffer: ArrayBuffer
 ): Promise<ParsedModel> {
@@ -31,9 +18,6 @@ export async function parseOnnxModel(
   const session = await ort.InferenceSession.create(arrayBuffer, {
     executionProviders: ['webgpu', 'wasm']
   })
-
-  console.log(session.inputMetadata)
-  console.log(session.outputMetadata)
 
   // Inputs
   const inputs: ParsedInput[] = session.inputMetadata.map((meta: any) => ({
