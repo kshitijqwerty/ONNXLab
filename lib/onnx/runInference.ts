@@ -1,9 +1,11 @@
+import * as ort from "onnxruntime-web";
+
 export async function runInference(
-  session: any,
+  session: ort.InferenceSession,
   inputName: string,
-  tensor: any,
+  tensor: ort.Tensor,
 ) {
-  const feeds = {
+  const feeds: Record<string, ort.Tensor> = {
     [inputName]: tensor,
   };
 

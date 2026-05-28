@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as ort from 'onnxruntime-web'
 
 export interface ParsedInput {
@@ -19,22 +20,17 @@ export async function parseOnnxModel(
     executionProviders: ['webgpu', 'wasm']
   })
 
-  // Inputs
   const inputs: ParsedInput[] = session.inputMetadata.map((meta: any) => ({
     name: meta.name,
     type: meta.type || 'unknown',
     dimensions: meta.shape || []
   }))
 
-  // Outputs
   const outputs: ParsedInput[] = session.outputMetadata.map((meta: any) => ({
     name: meta.name,
     type: meta.type || 'unknown',
     dimensions: meta.shape || []
   }))
 
-  return {
-    inputs,
-    outputs
-  }
+  return { inputs, outputs }
 }

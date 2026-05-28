@@ -8,31 +8,38 @@ import { runInference } from "@/lib/onnx/runInference";
 import { parseOutputs } from "@/lib/onnx/parseOutputs";
 
 import OutputViewer from "./OutputViewer";
+import type { OutputTensor } from "@/lib/onnx/types";
+
+interface InputMetadata {
+  name: string;
+  shape?: readonly (number | string | null)[];
+  isTensor: boolean;
+  type?: string;
+}
 
 interface Props {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any;
 }
 
 export default function InputPanel({ session }: Props) {
-  const [outputs, setOutputs] = useState<any>(null);
-
+  const [outputs, setOutputs] = useState<OutputTensor[] | null>(null);
   const [running, setRunning] = useState(false);
-
   const [labels, setLabels] = useState<string[]>([]);
 
   if (!session) {
     return null;
   }
 
-  async function handleImageInference(file: File, meta: any) {
+  async function handleImageInference(file: File, meta: InputMetadata) {
     try {
       setRunning(true);
 
-      const shape = meta.shape || [];
+      const shape = meta.shape ?? [];
 
-      const height = shape[2] || 224;
+      const height = Number(shape[2]) || 224;
 
-      const width = shape[3] || 224;
+      const width = Number(shape[3]) || 224;
 
       // Convert image -> tensor
       const tensor = await imageToTensor(file, width, height);
@@ -88,10 +95,10 @@ export default function InputPanel({ session }: Props) {
 
       {/* Inputs */}
       <div className="space-y-4">
-        {session.inputMetadata?.map((meta: any, index: number) => {
+        {session.inputMetadata?.map((meta: InputMetadata, index: number) => {
           const shape = meta.shape || [];
 
-          const inputType = detectInputType(shape, meta.type);
+          const inputType = detectInputType(shape);
 
           return (
             <div

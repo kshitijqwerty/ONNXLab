@@ -1,9 +1,11 @@
 "use client";
 
 import { Handle, Position } from "reactflow";
+import type { OperatorNodeData } from "@/lib/onnx/graph";
+import type { NodeIO } from "@/lib/onnx/types";
 
 interface Props {
-  data: any;
+  data: OperatorNodeData;
 }
 
 function getNodeColor(opType: string) {
@@ -96,7 +98,7 @@ export default function OperatorNode({ data }: Props) {
   space-y-1
 "
       >
-        {data.outputs?.slice(0, 2).map((output: any, index: number) => (
+        {data.outputs?.slice(0, 2).map((output: NodeIO, index: number) => (
           <div
             key={index}
             className="

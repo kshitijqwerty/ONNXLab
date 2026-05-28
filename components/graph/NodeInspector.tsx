@@ -1,70 +1,50 @@
 "use client";
 
+import type { Node } from "reactflow";
+import type { Attribute, NodeIO } from "@/lib/onnx/types";
+import type { OperatorNodeData } from "@/lib/onnx/graph";
+
 interface Props {
-  node: any;
+  node: Node<OperatorNodeData> | null;
 }
 
-function normalizeValue(value: any): any {
-
+function normalizeValue(value: unknown): unknown {
   if (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    'low' in value
+    "low" in value
   ) {
-
-    return value.low
+    return (value as { low: unknown }).low;
   }
-
-  return value
+  return value;
 }
 
-function formatAttributeValue(
-  attr: any
-) {
-
-  // Float arrays
+function formatAttributeValue(attr: Attribute): string {
   if (attr.floats?.length) {
-
-    return `[${attr.floats
-      .map(normalizeValue)
-      .join(', ')}]`
+    return `[${attr.floats.map(normalizeValue).join(", ")}]`;
   }
 
-  // Int arrays
   if (attr.ints?.length) {
-
-    return `[${attr.ints
-      .map(normalizeValue)
-      .join(', ')}]`
+    return `[${attr.ints.map(normalizeValue).join(", ")}]`;
   }
 
-  // String arrays
   if (attr.strings?.length) {
-
-    return attr.strings.join(', ')
+    return attr.strings.join(", ");
   }
 
-  // Integer
   if (attr.i !== undefined) {
-
-    return String(
-      normalizeValue(attr.i)
-    )
+    return String(normalizeValue(attr.i));
   }
 
-  // Float
   if (attr.f !== undefined) {
-
-    return String(attr.f)
+    return String(attr.f);
   }
 
-  // String
   if (attr.s) {
-
-    return String(attr.s)
+    return attr.s;
   }
 
-  return 'N/A'
+  return "N/A";
 }
 
 export default function NodeInspector({ node }: Props) {
@@ -213,7 +193,7 @@ export default function NodeInspector({ node }: Props) {
         </h3>
 
         <div className="space-y-2">
-          {data.inputs?.map((input: any, index: number) => (
+          {data.inputs?.map((input: NodeIO, index: number) => (
             <div
               key={index}
               className="
@@ -281,7 +261,7 @@ export default function NodeInspector({ node }: Props) {
         </h3>
 
         <div className="space-y-2">
-          {data.outputs?.map((output: any, index: number) => (
+          {data.outputs?.map((output: NodeIO, index: number) => (
             <div
               key={index}
               className="
@@ -357,7 +337,7 @@ export default function NodeInspector({ node }: Props) {
     border-white/5
   "
             >
-              {data.attributes.map((attr: any, index: number) => (
+              {data.attributes.map((attr: Attribute, index: number) => (
                 <div
                   key={index}
                   className="

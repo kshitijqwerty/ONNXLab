@@ -3,7 +3,9 @@
 import * as ort from "onnxruntime-web";
 import { useState, useEffect } from "react";
 import { parseOnnxModel } from "@/lib/onnx/parser";
+import type { ParsedModel, ParsedInput } from "@/lib/onnx/parser";
 import { buildGraph } from "@/lib/onnx/graph";
+import type { GraphResult } from "@/lib/onnx/graph";
 import ModelGraph from "@/components/graph/ModelGraph";
 import { parseGraph } from "@/lib/onnx/graphParser";
 import { createSession } from "@/lib/onnx/inference";
@@ -12,10 +14,12 @@ import { checkWebGPU } from "@/lib/onnx/checkWebGpu";
 
 export default function OnnxUploader() {
   const [fileName, setFileName] = useState<string>("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string>("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState(false);
-  const [modelInfo, setModelInfo] = useState<any>(null);
-  const [graph, setGraph] = useState<any>(null);
+  const [modelInfo, setModelInfo] = useState<ParsedModel | null>(null);
+  const [graph, setGraph] = useState<GraphResult | null>(null);
   const [session, setSession] = useState<ort.InferenceSession | null>(null);
   const [gpuEnabled, setGpuEnabled] = useState(false);
 
@@ -113,6 +117,8 @@ export default function OnnxUploader() {
       p-10
       backdrop-blur-xl
     "
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={onDrop}
       >
         <div className="flex flex-col items-center text-center">
           <h2 className="mb-4 text-4xl font-bold text-white">
@@ -183,7 +189,7 @@ export default function OnnxUploader() {
                 <h4 className="mb-3 text-lg font-semibold">Inputs</h4>
 
                 <div className="space-y-3">
-                  {modelInfo.inputs.map((input: any) => (
+                  {modelInfo.inputs.map((input: ParsedInput) => (
                     <div
                       key={input.name}
                       className="
@@ -213,7 +219,7 @@ export default function OnnxUploader() {
                 <h4 className="mb-3 text-lg font-semibold">Outputs</h4>
 
                 <div className="space-y-3">
-                  {modelInfo.outputs.map((output: any) => (
+                  {modelInfo.outputs.map((output: ParsedInput) => (
                     <div
                       key={output.name}
                       className="

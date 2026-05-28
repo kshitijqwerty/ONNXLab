@@ -2,12 +2,13 @@
 
 import { topK } from "@/lib/onnx/topK";
 import { analyzeTensor } from "@/lib/onnx/analyzeTensor";
+import type { OutputTensor } from "@/lib/onnx/types";
 
 interface Props {
-  outputs: any[];
+  outputs: OutputTensor[];
   labels: string[];
   inputName?: string;
-  inputShape?: any[];
+  inputShape?: readonly (string | number | null)[];
 }
 
 export default function OutputViewer({

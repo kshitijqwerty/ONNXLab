@@ -1,11 +1,12 @@
-export function analyzeTensor(output: any) {
+import type { OutputTensor, TensorAnalysis } from "./types";
+
+export function analyzeTensor(output: OutputTensor): TensorAnalysis {
   const shape = output.dims || [];
 
-  const data = output.data || [];
+  const data = output.data;
 
   const total = data.length;
 
-  // Prevent crashes
   if (total === 0) {
     return {
       total: 0,

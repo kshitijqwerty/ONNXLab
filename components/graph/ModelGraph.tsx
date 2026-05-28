@@ -13,10 +13,11 @@ import ReactFlow, {
 import { useState, useEffect } from "react";
 import NodeInspector from "./NodeInspector";
 import OperatorNode from "./OperatorNode";
+import type { OperatorNodeData } from "@/lib/onnx/graph";
 import "reactflow/dist/style.css";
 
 interface Props {
-  nodes: Node[];
+  nodes: Node<OperatorNodeData>[];
   edges: Edge[];
 }
 const nodeTypes = {
@@ -26,7 +27,7 @@ export default function ModelGraph({
   nodes: initialNodes,
   edges: initialEdges,
 }: Props) {
-  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<Node<OperatorNodeData> | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   useEffect(() => {
