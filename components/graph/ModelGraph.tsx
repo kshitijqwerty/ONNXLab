@@ -23,6 +23,18 @@ interface Props {
 const nodeTypes = {
   operator: OperatorNode,
 };
+
+function PanelToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute right-2 top-2 z-10 hidden rounded-xl border border-white/10 bg-[#111827] px-3 py-1.5 text-xs text-gray-400 transition hover:text-white max-md:block"
+    >
+      {open ? "Close Inspector" : "Inspector"}
+    </button>
+  );
+}
+
 export default function ModelGraph({
   nodes: initialNodes,
   edges: initialEdges,
@@ -30,6 +42,8 @@ export default function ModelGraph({
   const [selectedNode, setSelectedNode] = useState<Node<OperatorNodeData> | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+
   useEffect(() => {
     setNodes(initialNodes);
   }, [initialNodes, setNodes]);
@@ -37,37 +51,26 @@ export default function ModelGraph({
   useEffect(() => {
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
-  return (
-    <div
-      className="
-    overflow-hidden
-    rounded-3xl
-    border
-    border-white/10
-    bg-[#111827]
-    shadow-2xl
-  "
-    >
-      {/* Header */}
-      <div
-        className="
-      border-b
-      border-white/10
-      bg-black/20
-      px-6
-      py-4
-    "
-      >
-        <h2 className="text-xl font-bold text-white">Computational Graph</h2>
 
-        <p className="text-sm text-gray-400">
-          Interactive neural network visualization
-        </p>
+  return (
+    <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-6 py-4">
+        <div>
+          <h2 className="text-xl font-bold text-white">Computational Graph</h2>
+          <p className="text-sm text-gray-400">
+            {initialNodes.length} nodes &middot; {initialEdges.length} edges
+          </p>
+        </div>
       </div>
 
       <div className="flex h-[800px]">
         {/* Graph */}
-        <div className="flex-1 bg-[#0B1020]">
+        <div className="relative flex-1 bg-[#0B1020]">
+          <PanelToggle
+            open={inspectorOpen}
+            onClick={() => setInspectorOpen((v) => !v)}
+          />
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -92,18 +95,23 @@ export default function ModelGraph({
             }}
             onNodeClick={(_, node) => {
               setSelectedNode(node);
+              setInspectorOpen(true);
             }}
           >
             <Background gap={24} size={1} color="#1E293B" />
-
             <Controls />
-
             <MiniMap pannable zoomable />
           </ReactFlow>
         </div>
 
         {/* Inspector */}
-        <NodeInspector node={selectedNode} />
+        <div
+          className={`w-[340px] shrink-0 overflow-y-auto border-l border-white/10 transition-all max-md:fixed max-md:bottom-0 max-md:left-0 max-md:z-20 max-md:w-full max-md:rounded-t-2xl max-md:border-l-0 max-md:border-t ${
+            inspectorOpen ? "max-md:max-h-[60vh]" : "max-md:max-h-0 max-md:overflow-hidden max-md:border-t-0"
+          }`}
+        >
+          <NodeInspector node={selectedNode} />
+        </div>
       </div>
     </div>
   );
